@@ -13,7 +13,7 @@ from const import Const
 from converter import Converter
 from candle_chart import CandleChart, BandPlot, makeFig, gridFig, Colors
 
-from dc_detector import DCDetector
+from dc_detector import DCDetector, indicators, TimeUnit
 
 def load_tick_data(filepath):
     #df = pl.read_csv(filepath, sep='\t')
@@ -45,16 +45,18 @@ def main():
     df.write_excel('./1min.xlsx')
     
     
-def plot_events(title, events, time, op, hi, lo, cl, date_format=CandleChart.DATE_FORMAT_YEAR_MONTH):
+def plot_events(events, time, op, hi, lo, cl, date_format=CandleChart.DATE_FORMAT_YEAR_MONTH):
     fig, ax = makeFig(1, 1, (16, 8))
-    chart = CandleChart(fig, ax, title=title, date_format=date_format)
+    chart = CandleChart(fig, ax, title='', date_format=date_format)
     #chart.drawCandle(time, op, hi, lo, cl)
     chart.drawLine(time, cl, color='blue', xlabel=True)
-    for dc_event, os_event in events:
+    for i, [dc_event, os_event] in enumerate(events):
         if dc_event.upward:
             c = 'green'
         else:
             c = 'red'
+        (TMV, T, R) = indicators(dc_event, os_event, TimeUnit.DAY)
+        print('#' + str(i), 'TMV: ', TMV, 'T: ', T, 'R: ', R)
         chart.drawLine(dc_event.term, dc_event.price, should_set_xlim=False, linewidth=5.0, color=c)
         chart.drawLine(os_event.term, os_event.price, should_set_xlim=False, linewidth=5.0, color=c, linestyle='dotted')
         
@@ -70,7 +72,7 @@ def detect():
     cl = df["Close"].to_numpy()
     detector = DCDetector(time, cl)   
     events = detector.detect_events(5)
-    plot_events("", events, time, op, hi, lo, cl)
+    plot_events( events, time, op, hi, lo, cl)
     
 
     

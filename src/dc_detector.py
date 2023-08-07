@@ -16,7 +16,7 @@ class TimeUnit:
     SECOND = 'second' 
 
 def indicators(dc_event, os_event, time_unit: TimeUnit):
-    TMV = abs(os_event.price[1] - dc_event.price[0]) / dc_event.price[0] / dc_event.threshold_percent
+    TMV = abs(os_event.price[1] - dc_event.price[0]) / dc_event.price[0] / dc_event.threshold_percent * 100.0
     t = os_event.term[1] - dc_event.term[0]
     if time_unit == TimeUnit.DAY:        
          T = t.total_seconds() / 60 / 60 / 24
@@ -26,8 +26,17 @@ def indicators(dc_event, os_event, time_unit: TimeUnit):
         T = t.total_seconds() / 60
     elif time_unit == TimeUnit.SECOND:
         T = t.total_seconds()
-    R = abs(os_event.price[1] - dc_event.price[0]) / dc_event.price[0] / T
+    #R = abs(os_event.price[1] - dc_event.price[0]) / dc_event.price[0] / T
+    R = TMV / T
     return (TMV, T, R)
+
+
+def coastline(events, time_unit: TimeUnit):
+    s = 0.0
+    for dc_event, os_event in events:
+        tmv, t,r = indicators(dc_event, os_event, time_unit)
+        s += tmv
+    return s
 
 class Event:
     def __init__(self, i_begin, i_end, time_begin, time_end, price_begin, price_end, threshold_percent):

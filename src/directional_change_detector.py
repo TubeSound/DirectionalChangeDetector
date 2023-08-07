@@ -13,7 +13,7 @@ from const import Const
 from converter import Converter
 from candle_chart import CandleChart, BandPlot, makeFig, gridFig, Colors
 
-from dc_detector import DCDetector, indicators, TimeUnit
+from dc_detector import DCDetector, indicators, TimeUnit, coastline
 
 def load_tick_data(filepath):
     #df = pl.read_csv(filepath, sep='\t')
@@ -46,22 +46,29 @@ def main():
     
     
 def plot_events(events, time, op, hi, lo, cl, date_format=CandleChart.DATE_FORMAT_YEAR_MONTH):
-    fig, ax = makeFig(1, 1, (16, 8))
+    fig, ax = makeFig(1, 1, (30,12))
     chart = CandleChart(fig, ax, title='', date_format=date_format)
     #chart.drawCandle(time, op, hi, lo, cl)
-    chart.drawLine(time, cl, color='blue', xlabel=True)
+    chart.drawLine(time, cl, color='blue')
     for i, [dc_event, os_event] in enumerate(events):
         if dc_event.upward:
             c = 'green'
         else:
             c = 'red'
         (TMV, T, R) = indicators(dc_event, os_event, TimeUnit.DAY)
-        print('#' + str(i), 'TMV: ', TMV, 'T: ', T, 'R: ', R)
+        label1 = "#{}  TMV: {:.5f}  ".format(i + 1, TMV)
+        label2 = " T: {}  R: {:.5f}".format(T
+                                            , R)
+        print(label1 + label2)
+        x = dc_event.term[1]
+        y = dc_event.price[1]
+        chart.drawMarker(x, y, 'o', c)
+        chart.drawText(x, y * 1.05, label1 + ' \n' + label2)
         chart.drawLine(dc_event.term, dc_event.price, should_set_xlim=False, linewidth=5.0, color=c)
         chart.drawLine(os_event.term, os_event.price, should_set_xlim=False, linewidth=5.0, color=c, linestyle='dotted')
         
-def detect():
-    with open('./data/asx200.pkl', 'rb') as f:
+def detect(filepath):
+    with open(filepath, 'rb') as f:
         df = pickle.load(f)
         
     #print(df.columns, df.index)
@@ -72,10 +79,13 @@ def detect():
     cl = df["Close"].to_numpy()
     detector = DCDetector(time, cl)   
     events = detector.detect_events(5)
+    print('DC event num:', len(events), ' Coastline:', coastline(events, TimeUnit.DAY))
     plot_events( events, time, op, hi, lo, cl)
     
 
     
 if __name__ == '__main__':
-    detect()
+    path = './data/asx200.pkl'
+    path = './data/aex25.pkl'
+    detect(path)
     

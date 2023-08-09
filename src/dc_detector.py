@@ -16,7 +16,10 @@ class TimeUnit:
     SECOND = 'second' 
 
 def indicators(dc_event, os_event, time_unit: TimeUnit):
-    TMV = abs(os_event.price[1] - dc_event.price[0]) / dc_event.price[0] / dc_event.threshold_percent * 100.0
+    try:
+        TMV = abs(os_event.price[1] - dc_event.price[0]) / dc_event.price[0] / dc_event.threshold_percent * 100.0
+    except:
+        return (None, None, None)
     t = os_event.term[1] - dc_event.term[0]
     if time_unit == TimeUnit.DAY:        
          T = t.total_seconds() / 60 / 60 / 24
@@ -34,7 +37,9 @@ def indicators(dc_event, os_event, time_unit: TimeUnit):
 def coastline(events, time_unit: TimeUnit):
     s = 0.0
     for dc_event, os_event in events:
-        tmv, t,r = indicators(dc_event, os_event, time_unit)
+        tmv, t, r = indicators(dc_event, os_event, time_unit)
+        if tmv is None:
+            break
         s += tmv
     return s
 
@@ -84,6 +89,7 @@ class DCDetector:
             if upward is None:
                 # detect DC event
                 if abs(delta) >= threshold_percent:
+
                     return event
             else:
                 if upward:
@@ -124,14 +130,14 @@ class DCDetector:
         while True:
             dc_event = self.detect_dc(time, prices, begin, threshold_percent)
             if dc_event is None:
+                events.append([dc_event, None])
                 return events
-        
             begin = dc_event.index[1]
             direction = dc_event.upward
             os_event = self.detect_os(time, prices, begin, threshold_percent, direction)
-            if os_event is None:
-                break
             events.append([dc_event, os_event])
+            if os_event is None:
+                return events
             begin = os_event.index[1]
         return events        
         

@@ -2,7 +2,6 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../Libraries/trade"))
 
-
 import polars as pl
 import pandas as pd
 import numpy as np
@@ -85,7 +84,7 @@ def detect(filepath):
     lo = df["Low"].to_numpy()
     cl = df["Close"].to_numpy()
     detector = DCDetector(time, cl)   
-    events = detector.detect_events(5)
+    events = detector.detect_events(5, 3)
     print('DC event num:', len(events), ' Coastline:', coastline(events, TimeUnit.DAY))
     plot_events( events, time, op, hi, lo, cl)
 
@@ -112,7 +111,6 @@ def readFileXM(path, delimiter='\t'):
         line = f.readline()
     f.close()
     return tohlc
-    
 
 def log_return(prices):
     out = [np.nan]
@@ -138,12 +136,6 @@ def hmm():
     log_r = log_return(cl)
     chart2 = CandleChart(fig, axes[1], title='', date_format=CandleChart.DATE_FORMAT_DATE_TIME)
     chart2.drawLine(time, log_r, color='red')
-
-
-
-
-
-
     
         
 def test():

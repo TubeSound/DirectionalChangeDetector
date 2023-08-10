@@ -59,44 +59,51 @@ class DCDetector:
         self.time = time
         self.prices = prices
         
-    def detect_os(self, time: array, data: array, begin: int, threshold_percent: float, is_upward):
+    def detect_os(self, time: array, data: array, begin: int, th_up_percent: float, th_down_percent: float, is_upward):
         ref = data[begin]
         i_peak = begin
         n = len(data)
         for i in range(begin + 1, n):
             delta = (data[i] / ref - 1.0) * 100.0
-            event = Event(begin, i_peak, time[begin], time[i_peak], data[begin], data[i_peak], threshold_percent)     
+            event = Event(begin, i_peak, time[begin], time[i_peak], data[begin], data[i_peak], 0.0)     
             if is_upward:
-                if delta <= -1.0 *  threshold_percent:
+                if delta <= -1.0 *  th_down_percent:
+                    event.threshold_percent = th_down_percent
                     return event
                 if data[i] > ref:
                     ref = data[i]
                     i_peak = i
             else:
-                if delta >= threshold_percent:
+                if delta >= th_up_percent:
+                    event.threshold_percent = th_up_percent
                     return event
                 if data[i] < ref:
                     ref = data[i]
                     i_peak = i
         return None
     
-    def detect_dc(self, time: array, data: array, begin: int, threshold_percent: float, upward=None):
+    def detect_dc(self, time: array, data: array, begin: int, th_up_percent: float, th_down_percent: float, upward=None):
         ref = data[begin]
         n = len(data)
         for i in range(begin + 1, n):
             delta = (data[i] / ref - 1.0) * 100.0
-            event = Event(begin, i, time[begin], time[i], ref, data[i], threshold_percent)     
+            event = Event(begin, i, time[begin], time[i], ref, data[i], 0)     
             if upward is None:
                 # detect DC event
-                if abs(delta) >= threshold_percent:
-
+                if delta >= th_up_percent:
+                    event.threshold_percent = th_up_percent
+                    return event
+                if delta < -1 * th_down_percent:
+                    event.threshold_percent = th_down_percent
                     return event
             else:
                 if upward:
-                    if delta >= threshold_percent:
+                    if delta >= th_up_percent:
+                        event.threshold_percent = th_up_percent
                         return event
                 else:
-                    if delta <= -1 * threshold_percent:
+                    if delta <= -1 * th_down_percent:
+                        event.threshold_percent = th_down_percent
                         return event
         return None
         
@@ -122,19 +129,19 @@ class DCDetector:
                 break
         return (min_i, min_value)        
     
-    def detect_events(self, threshold_percent):
+    def detect_events(self, th_up_percent, th_down_percent):
         time = self.time.copy()
         prices = self.prices.copy()
         events = []
         begin = 0        
         while True:
-            dc_event = self.detect_dc(time, prices, begin, threshold_percent)
+            dc_event = self.detect_dc(time, prices, begin, th_up_percent, th_down_percent)
             if dc_event is None:
                 events.append([dc_event, None])
                 return events
             begin = dc_event.index[1]
             direction = dc_event.upward
-            os_event = self.detect_os(time, prices, begin, threshold_percent, direction)
+            os_event = self.detect_os(time, prices, begin, th_up_percent, th_down_percent, direction)
             events.append([dc_event, os_event])
             if os_event is None:
                 return events
